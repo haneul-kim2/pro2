@@ -1,0 +1,40 @@
+{
+  "name": "mapleland-hunt-calculator",
+  "version": "1.0.0",
+  "description": "메이플랜드 사냥 정산기 - 정확한 사냥 효율 분석 도구",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "dev": "npx http-server -p 8000 -o",
+    "test": "echo \"테스트는 브라우저에서 자동 실행됩니다\""
+  },
+  "keywords": [
+    "mapleland",
+    "hunt",
+    "calculator",
+    "ocr",
+    "game",
+    "korean"
+  ],
+  "author": "하늘찐 (김하늘)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gomsky/mapleland-hunt-calculator"
+  },
+  "bugs": {
+    "url": "https://github.com/gomsky/mapleland-hunt-calculator/issues"
+  },
+  "homepage": "https://github.com/gomsky/mapleland-hunt-calculator#readme",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
+} 

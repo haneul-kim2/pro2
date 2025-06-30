@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="ko" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="메이플랜드 사냥 정산기 - 정확한 사냥 효율 분석 도구">
+  <meta name="author" content="하늘찐 (김하늘)">
+  <title>메이플랜드 사냥 정산기</title>
+  
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=IBM+Plex+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  
+  <script>
+    // 다크모드 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+      const darkModeSwitch = document.getElementById('darkModeSwitch');
+      const htmlElement = document.documentElement;
+      
+      // 저장된 테마 로드 (기본값: 다크모드)
+      const savedTheme = localStorage.getItem('theme') || 'dark';
+      htmlElement.setAttribute('data-bs-theme', savedTheme);
+      darkModeSwitch.checked = (savedTheme === 'dark');
+      
+      // 다크모드 토글 이벤트
+      darkModeSwitch.addEventListener('change', function() {
+        const newTheme = this.checked ? 'dark' : 'light';
+        htmlElement.setAttribute('data-bs-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+      });
+    });
+  </script>
+</head>
+<body>
+    
+
+  <!-- 헤더 -->
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-12">
+        <div class="header-card">
+          <div class="header-content text-center">
+            <div class="title-card">
+              <h1 class="display-6 mb-2 main-title">메이플랜드 사냥 정산기</h1>
+              <p class="text-muted mb-0 subtitle">정확한 사냥 효율 분석 도구</p>
+            </div>
+          </div>
+          <div class="dark-mode-toggle">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="darkModeSwitch">
+            </div>
+          </div>
+        </div>
+        
+        <!-- 사용 방법 안내 -->
+        <div class="text-center mb-4">
+          <button type="button" class="btn btn-info btn-lg shadow-sm px-4 py-2" id="guideModalBtn" data-bs-toggle="modal" data-bs-target="#guideModal">
+            <i class="bi bi-question-circle me-2"></i>사용 방법 보기
+          </button>
+          <p class="text-muted mt-2 small">
+            <i class="bi bi-info-circle me-1"></i>
+            처음 사용하시는 분은 반드시 사용 방법을 읽어주세요!
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main class="container">
+    <div class="row g-4">
+      <!-- 좌측: 입력 및 분석 영역 -->
+      <div class="col-lg-5">
+        <!-- 1단계: 스크린샷 업로드 -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-header fs-5"><strong>1단계:</strong> 스크린샷 업로드</div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label for="before-upload" class="form-label"><strong>사냥 전</strong> 스크린샷</label>
+              <input type="file" id="before-upload" class="form-control" accept="image/*">
+              <div class="mt-2 text-center">
+                <img id="before-preview" src="" alt="사냥 전 미리보기" style="max-width: 100%; max-height: 120px; display: none; border:1px solid #eee; border-radius:6px;" />
+              </div>
+            </div>
+            <div>
+              <label for="after-upload" class="form-label"><strong>사냥 후</strong> 스크린샷</label>
+              <input type="file" id="after-upload" class="form-control" accept="image/*">
+              <div class="mt-2 text-center">
+                <img id="after-preview" src="" alt="사냥 후 미리보기" style="max-width: 100%; max-height: 120px; display: none; border:1px solid #eee; border-radius:6px;" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2단계: 정보 입력 -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-header fs-5 d-flex justify-content-between align-items-center">
+            <strong>2단계:</strong> 정보 입력
+            <button type="button" class="btn btn-outline-secondary btn-sm item-price-btn-compact" 
+                    data-bs-toggle="modal" data-bs-target="#itemPriceModal"
+                    title="아이템 가격 설정">
+              <i class="bi bi-gear-fill"></i> 가격 설정
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="accordion" id="inputAccordion">
+              <!-- 자동 인식 결과 (수정 가능) -->
+              <div class="accordion-item">
+                <h2 class="accordion-header"><button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOcr">자동 인식 결과 (메소/경험치)</button></h2>
+                <div id="collapseOcr" class="accordion-collapse collapse show" data-bs-parent="#inputAccordion">
+                  <div class="accordion-body">
+                     <!-- 사냥 전 -->
+                     <h6 class="mb-2">사냥 전</h6>
+                     <div class="input-group input-group-sm mb-2">
+                        <span class="input-group-text" style="width: 80px;">메소</span>
+                        <input type="text" id="before-meso" class="form-control" placeholder="자동 인식 대기...">
+                     </div>
+                     <div class="input-group input-group-sm mb-3">
+                        <span class="input-group-text" style="width: 80px;">경험치</span>
+                        <input type="text" id="before-exp" class="form-control" placeholder="자동 인식 대기...">
+                     </div>
+                      <!-- 사냥 후 -->
+                     <h6 class="mb-2">사냥 후</h6>
+                     <div class="input-group input-group-sm mb-2">
+                        <span class="input-group-text" style="width: 80px;">메소</span>
+                        <input type="text" id="after-meso" class="form-control" placeholder="자동 인식 대기...">
+                     </div>
+                     <div class="input-group input-group-sm">
+                        <span class="input-group-text" style="width: 80px;">경험치</span>
+                        <input type="text" id="after-exp" class="form-control" placeholder="자동 인식 대기...">
+                     </div>
+                  </div>
+                </div>
+              </div>
+              <!-- 소비 아이템 수량 -->
+              <div class="accordion-item">
+                <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseItems">소비 아이템 (직접 입력)</button></h2>
+                <div id="collapseItems" class="accordion-collapse collapse" data-bs-parent="#inputAccordion">
+                  <div class="accordion-body">
+                     <div class="row small text-center text-muted"><div class="col">항목</div><div class="col">사냥 전</div><div class="col">사냥 후</div></div>
+                     <!-- MP 포션 -->
+                     <div class="input-group input-group-sm mb-2">
+                        <span class="input-group-text" style="width: 80px;">MP 포션</span>
+                        <input type="number" class="form-control" id="before-item_mana" placeholder="개수">
+                        <input type="number" class="form-control" id="after-item_mana" placeholder="개수">
+                     </div>
+                     <!-- HP 포션 -->
+                     <div class="input-group input-group-sm mb-2">
+                        <span class="input-group-text" style="width: 80px;">HP 포션</span>
+                        <input type="number" class="form-control" id="before-item_hp" placeholder="개수">
+                        <input type="number" class="form-control" id="after-item_hp" placeholder="개수">
+                     </div>
+                     <!-- 소환의 돌 -->
+                     <div class="input-group input-group-sm">
+                        <span class="input-group-text" style="width: 80px;">소환의 돌</span>
+                        <input type="number" class="form-control" id="before-item_summon" placeholder="개수">
+                        <input type="number" class="form-control" id="after-item_summon" placeholder="개수">
+                     </div>
+                  </div>
+                </div>
+              </div>
+               <!-- 기타 비용 -->
+              <div class="accordion-item">
+                <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCost">기타 비용 (심비 등)</button></h2>
+                <div id="collapseCost" class="accordion-collapse collapse" data-bs-parent="#inputAccordion">
+                  <div class="accordion-body">
+                    <div class="input-group">
+                      <span class="input-group-text">비용 총액</span>
+                      <input type="number" class="form-control" id="service-cost" placeholder="예: 200000">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3단계: 득템 수익 입력 -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-header fs-5">
+            <strong>3단계:</strong> 득템 수익 입력
+          </div>
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="mb-0 fw-semibold text-primary">획득한 아이템 정보</h6>
+              <button type="button" class="btn btn-sm btn-outline-success" onclick="addItemGain()">
+                <i class="bi bi-plus-circle me-1"></i>아이템 추가
+              </button>
+            </div>
+            
+            <!-- 득템 수익 입력 영역 -->
+            <div class="item-gains-section">
+              <!-- 입력 필드들 -->
+              <div id="item-gains-inputs">
+                <!-- 아이템 입력 필드들이 여기에 동적으로 추가됩니다 -->
+              </div>
+              
+              <!-- 입력된 데이터 확인 영역 -->
+              <div id="item-gains-summary" class="mt-4" style="display: none;">
+                <h6 class="mb-3 fw-semibold text-secondary">입력된 아이템 목록</h6>
+                <div class="table-responsive">
+                  <table class="table table-sm table-hover">
+                    <thead class="table-light">
+                      <tr>
+                        <th>아이템명</th>
+                        <th>개당가격</th>
+                        <th>개수</th>
+                        <th>거래방식</th>
+                        <th>순수익</th>
+                        <th>삭제</th>
+                      </tr>
+                    </thead>
+                    <tbody id="item-gains-summary-container">
+                      <!-- 입력된 아이템들이 여기에 표시됩니다 -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              <!-- 총 득템 수익 표시 -->
+              <div class="total-gain-display mt-3 p-3 bg-light rounded">
+                <div class="row align-items-center">
+                  <div class="col-md-8">
+                    <h6 class="mb-0 fw-semibold text-success">
+                      <i class="bi bi-coin me-2"></i>총 득템 수익
+                    </h6>
+                  </div>
+                  <div class="col-md-4 text-end">
+                    <span class="fs-5 fw-bold text-success" id="total-item-gain">0</span>
+                    <small class="text-muted ms-1">메소</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4단계: 분석 실행 -->
+        <div class="card shadow-sm mb-4 analysis-section">
+          <div class="card-header fs-5">
+            <strong>4단계:</strong> 분석 실행
+          </div>
+          <div class="card-body">
+            <div class="d-grid gap-2">
+              <button id="analyze-button" class="btn btn-primary btn-lg shadow">분석 시작</button>
+              <button id="calculate-button" class="btn btn-success btn-lg shadow" disabled>정산 계산</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 우측: 결과 및 기록 영역 -->
+      <div class="col-lg-7">
+        <!-- 분석 결과 -->
+        <div id="result" class="alert alert-success" style="display: none;">
+          <h5>정산 결과</h5>
+          <div class="row">
+            <div class="col-md-6">
+              <strong>메소 획득:</strong> <span id="meso-gain">0</span>
+            </div>
+            <div class="col-md-6">
+              <strong>경험치 획득:</strong> <span id="exp-gain">0</span>
+            </div>
+          </div>
+        </div>
+        
+        <div id="result-display" class="mb-4"></div>
+        <!-- 디버그 뷰 (아코디언) -->
+        <div class="accordion" id="debugAccordion">
+          <div class="accordion-item">
+            <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDebug">디버그 뷰 보기</button></h2>
+            <div id="collapseDebug" class="accordion-collapse collapse" data-bs-parent="#debugAccordion">
+              <div id="debug-zone" class="accordion-body"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 사냥 기록 목록 -->
+    <div id="history-section" class="mt-5 data-management-section">
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h2 class="fw-bold">사냥 기록 목록</h2>
+        <div class="btn-toolbar">
+          <div class="btn-group me-2">
+            <button id="backup-data-button" class="btn btn-sm btn-info">백업</button>
+            <label class="btn btn-sm btn-success">
+              복원 <input type="file" id="restore-data-input" class="d-none">
+            </label>
+          </div>
+          <div class="btn-group me-2">
+            <button id="delete-selected-button" class="btn btn-sm btn-warning">선택 삭제</button>
+            <button id="delete-all-button" class="btn btn-sm btn-danger">전체 삭제</button>
+          </div>
+          <div class="btn-group">
+            <button id="export-excel-button" class="btn btn-sm btn-outline-secondary">엑셀 내보내기</button>
+          </div>
+        </div>
+      </div>
+      <!-- 기간 선택 및 통계 카드 UI -->
+      <div class="row align-items-center mb-3 g-2">
+        <div class="col-auto">
+          <select id="stat-period-select" class="form-select form-select-sm">
+            <option value="today">오늘</option>
+            <option value="week">이번 주</option>
+            <option value="month">이번 달</option>
+            <option value="all">전체</option>
+            <option value="custom">직접 선택</option>
+          </select>
+        </div>
+        <div class="col-auto" id="stat-custom-range" style="display:none;">
+          <input type="date" id="stat-date-from" class="form-control form-control-sm">
+          <span class="mx-1">~</span>
+          <input type="date" id="stat-date-to" class="form-control form-control-sm">
+        </div>
+        <div class="col">
+          <div id="stat-summary-cards" class="d-flex flex-wrap gap-2"></div>
+        </div>
+      </div>
+      <div id="hunt-history">
+        <!-- 사냥 기록들이 여기에 동적으로 추가됩니다 -->
+      </div>
+    </div>
+  </main>
+
+  <!-- 푸터 (제작자 정보) -->
+  <footer class="container text-center py-4 mt-5">
+    <hr>
+    <p class="fw-bold fs-5">
+      <strong>Mapleland Hunt Calculator</strong>
+      <br>
+      <a href="#" id="creditsLink" class="text-gradient btn btn-lg btn-outline-primary fw-bold px-4 py-2 mt-2" style="font-size:1.2rem;box-shadow:0 2px 12px #0d6efd22;transition:all 0.15s;">
+        하늘찐 (김하늘)
+      </a>
+    </p>
+  </footer>
+
+  <!-- ========================================================================================= -->
+  <!-- 모달 창들 -->
+  <!-- ========================================================================================= -->
+
+  <!-- 1. 사용 방법 모달 -->
+  <div class="modal fade modal-xl" id="guideModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">사용 방법 및 주의사항</h4>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <h4>시작 전 필수 확인 사항</h4>
+          <p>정확한 자동 인식을 위해, 아래 <strong>세 가지 환경 설정</strong>이 반드시 필요합니다. 이 설정이 다를 경우 OCR이 실패할 수 있습니다.</p>
+          <div class="alert alert-warning">
+            <ul class="mb-0">
+              <li><strong>게임 해상도:</strong> 반드시 <code>1280 x 800</code> 해상도로 설정해주세요.</li>
+              <li><strong>화면 모드:</strong> 반드시 <strong>전체 화면</strong> 모드에서 스크린샷을 촬영해야 합니다. (창 모드 X)</li>
+              <li><strong>글꼴:</strong> 메이플스토리 월드 <strong>기본 글꼴</strong>을 사용해야 합니다.</li>
+            </ul>
+          </div>
+
+          <hr>
+
+          <h4>1. 스크린샷 촬영 방법</h4>
+          <div class="row align-items-start mb-4">
+            <div class="col-md-5">
+              <div class="text-center">
+                <img src="images/ex.png" alt="스크린샷 예시" class="img-fluid rounded border shadow-sm mb-2" 
+                     style="cursor: pointer; max-width: 100%;" 
+                     onclick="openImageModal('images/ex.png')"
+                     title="클릭하여 확대">
+                <small class="text-muted">스크린샷 예시 (클릭하여 확대)</small>
+              </div>
+            </div>
+            <div class="col-md-7">
+              <div class="ps-md-4">
+                <h6 class="mb-3">스크린샷 촬영 위치 및 주의사항</h6>
+                <ul class="mb-3">
+                  <li><strong>메소:</strong> 캐릭터 정보창의 메소 표시 부분을 정확히 캡처해 주세요.</li>
+                  <li><strong>경험치:</strong> <span class="text-primary">경험치바의 왼쪽에 마우스를 대고</span> 스크린샷을 찍어야 OCR 인식률이 높아집니다.</li>
+                  <li><strong>인벤토리:</strong> <span class="text-primary">인벤토리를 단축키 슬롯 바로 위에 위치</span>시켜 주세요. 본 정산기는 <strong>좌표 기반 OCR</strong>을 사용하므로, 예시와 동일한 위치가 매우 중요합니다.</li>
+                  <li><strong>포션 개수:</strong> 현재는 <span class="text-danger">수동 입력</span>을 권장합니다. (OCR 자동화 안정성 테스트 중)</li>
+                </ul>
+                <div class="alert alert-danger">
+                  <h6 class="alert-heading mb-2">매우 중요!</h6>
+                  <ul class="mb-0 small">
+                    <li>게임 내 스크린샷 기능 사용 (기본값 PrintScreen)</li>
+                    <li>스크린샷 저장 위치: MapleStoryWorlds 폴더</li>
+                    <li>인벤토리/경험치/메소 위치가 예시와 다르면 인식률이 크게 저하될 수 있습니다.</li>
+                  </ul>
+                </div>
+                <div class="alert alert-warning">
+                  <strong>심비는 사냥 시작 전에 미리 지불하신 후 스크린샷을 찍어주세요, 이후 해당 비용을 '기타 비용' 필드에 입력해 주세요. (이 비용은 총 지출에 포함됩니다.)</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr>
+
+          <h4>2. 사용 순서</h4>
+          <ol>
+            <li>사냥 전/후 스크린샷을 각각 업로드합니다.</li>
+            <li>"분석 시작" 버튼을 클릭하여 OCR 자동 인식을 실행합니다.</li>
+            <li>인식된 값이 입력 필드에 자동으로 채워집니다. 필요시 수동 수정 가능합니다.</li>
+            <li>소비 아이템 개수와 기타 비용을 입력합니다.</li>
+            <li>득템 수익이 있다면 "득템 추가" 버튼으로 입력합니다.</li>
+            <li>"정산 계산" 버튼을 클릭하여 최종 결과를 확인합니다.</li>
+          </ol>
+
+          <hr>
+
+          <h4>3. 계산 방식</h4>
+          <div class="alert alert-info">
+            <strong>순수익 = (사냥 메소 획득량) - (총 지출) + (득템 수익)</strong>
+          </div>
+          
+          <div class="accordion" id="calculationAccordion">
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#calculation-details">
+                  계산 방식 상세 설명 (클릭하여 확인)
+                </button>
+              </h2>
+              <div id="calculation-details" class="accordion-collapse collapse" data-bs-parent="#calculationAccordion">
+                <div class="accordion-body">
+                  <h6>왜 이렇게 계산하나요?</h6>
+                  <ul>
+                    <li><strong>사냥 메소 획득량:</strong> 사냥 후 메소 - 사냥 전 메소 = 실제 사냥으로 얻은 메소 (지갑 변화량)</li>
+                    <li><strong>총 지출:</strong> 사용한 포션, 소환의 돌 등의 총 가격 <b>+ 사전에 지불한 심비(기타 비용)</b></li>
+                    <li><strong>득템 수익:</strong> 사냥 중 획득한 아이템 판매 수익 (거래 수수료 차감 후 순수익)</li>
+                    <li><strong>최종 순수익:</strong> (사냥 메소 획득량) - (총 지출) + (득템 수익) = 실제 사냥의 경제적 효율</li>
+                  </ul>
+                  <div class="alert alert-warning mt-3">
+                    <strong>중요:</strong> 이 계산 방식은 <b>심비(기타 비용)를 사냥 시작 전에 미리 지불</b>하고, 해당 금액을 '기타 비용' 필드에 입력하는 것을 전제로 합니다.<br>
+                    <b>사냥 시작 전 심비(기타 비용) 지불 → 스크린샷 → 사냥 → 사냥 종료 후 잡템 판매 → 종료 스크린샷</b> 순서로 진행해야 정확한 계산이 가능합니다.
+                  </div>
+                  <p class="small text-muted">이 방식으로 정확한 사냥 효율을 측정할 수 있습니다.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr>
+
+          <h4>4. 득템 수익 입력</h4>
+          <p class="small text-muted">
+            사냥 중 획득한 아이템을 판매할 경우, 득템 수익을 입력할 수 있습니다:<br>
+            <ul>
+              <li><strong>아이템명:</strong> 판매한 아이템의 이름</li>
+              <li><strong>개당가격:</strong> 아이템 1개의 판매 가격</li>
+              <li><strong>개수:</strong> 판매한 아이템의 개수</li>
+              <li><strong>거래방식:</strong> 일반거래 또는 택배거래 선택</li>
+            </ul>
+            수수료는 자동으로 계산되어 순수익이 표시됩니다.
+          </p>
+
+          <hr>
+
+          <h4>5. 주요 기능 안내</h4>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="card mb-3">
+                <div class="card-body">
+                  <h6><i class="bi bi-gear"></i> 아이템 가격 설정</h6>
+                  <p class="small">포션, 소환의 돌 가격을 설정할 수 있습니다.</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card mb-3">
+                <div class="card-body">
+                  <h6><i class="bi bi-download"></i> 데이터 백업/복원</h6>
+                  <p class="small">설정과 기록을 백업하여 다른 기기에서도 사용할 수 있습니다.</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card mb-3">
+                <div class="card-body">
+                  <h6><i class="bi bi-file-earmark-excel"></i> 엑셀 내보내기</h6>
+                  <p class="small">사냥 기록을 엑셀 파일로 내보내어 분석할 수 있습니다.</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card mb-3">
+                <div class="card-body">
+                  <h6><i class="bi bi-moon"></i> 다크 모드</h6>
+                  <p class="small">헤더 우측의 토글으로 다크 모드를 전환할 수 있습니다.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr>
+
+          <h4>6. 자주 묻는 질문</h4>
+          <div class="accordion" id="faqAccordion">
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq-1">
+                  Q. 포션/소환돌 개수 자동 인식은 왜 안 되나요?
+                </button>
+              </h2>
+              <div id="faq-1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body">
+                  게임 내 아이템 아이콘과 배경의 복잡성, 그리고 작은 숫자로 인해 OCR 정확도가 100%에 도달하지 못했습니다. 부정확한 자동화보다는 사용자가 직접 입력하는 방식이 더 신뢰도 높다고 판단하여 현재 버전에서는 수동 입력으로 적용했습니다.
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq-2">
+                  Q. 제 데이터는 안전한가요? 서버로 전송되나요?
+                </button>
+              </h2>
+              <div id="faq-2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body">
+                  네, 100% 안전합니다. 모든 데이터는 사용자의 웹 브라우저에만 저장되며, 외부 서버로 전송되지 않습니다.
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq-3">
+                  Q. OCR 인식률을 높이는 방법은?
+                </button>
+              </h2>
+              <div id="faq-3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body">
+                  <ul>
+                    <li>반드시 1280x800 해상도 사용</li>
+                    <li>전체 화면 모드에서 스크린샷 촬영</li>
+                    <li>게임 기본 글꼴 사용</li>
+                    <li>스크린샷 시 화면이 깨끗한 상태 유지</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq-4">
+                  Q. 개발 중인 기능은?
+                </button>
+              </h2>
+              <div id="faq-4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body">
+                  <ul>
+                    <li>아이템 개수 자동 인식 기능</li>
+                    <li>실시간 사냥 효율 분석</li>
+                    <li>사냥 패턴 최적화 추천</li>
+                    <li>모바일 앱 버전</li>
+                    <li>클라우드 동기화 기능</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq-5">
+                  Q. 버그 발견 또는 기능 제안은 어떻게 하나요?
+                </button>
+              </h2>
+              <div id="faq-5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body">
+                  감사합니다! 아래 '만든 사람' 정보에 있는 디스코드(Discord)로 연락 주시면 적극적으로 검토하겠습니다.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. 제작자 정보 모달 -->
+  <div class="modal fade" id="creditsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">만든 사람</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body text-center">
+          <img src="images/1.PNG" alt="제작자 프로필" class="rounded-circle mb-4" width="120" height="120" 
+               style="cursor: pointer; transition: transform 0.2s; box-shadow: 0 0 0 4px #eee;" 
+               id="profileImage" 
+               title="클릭해보세요...">
+          <h3 class="mb-2">
+            <span style="color:#0d6efd; font-weight:900; text-shadow:0 2px 8px #0d6efd33;">하늘찐 (김하늘)</span>
+          </h3>
+          <p class="text-muted mb-2">Mapleland Scouter &amp; Developer</p>
+          <p class="mb-4 small text-secondary">
+            <span class="fw-bold text-info">제작자입니다!</span><br>
+            안녕하세요, 메이플랜드 사냥 정산기 제작자 <span style="color:#0d6efd; font-weight:700;">하늘찐(김하늘)</span>입니다.<br>
+            메이플랜드 유저의 경험과 데이터 분석, 최신 웹 기술 및 OCR 자동화 연구를 바탕으로<br>
+            <span class="text-primary">정확성, 신뢰성, 그리고 사용자의 편의성</span>을 최우선으로 생각합니다.<br>
+            <span class="text-info">AI/자동화, 데이터 분석, UX/UI</span> 등 다양한 분야의 노하우를 바탕으로 만들었습니다.<br>
+          </p>
+          <div class="row justify-content-center">
+            <div class="col-md-6">
+              <a href="javascript:void(0);" id="discordCopyBtn" class="btn btn-outline-primary btn-lg mb-3 w-100">
+                Discord: gomsky. <i class="bi bi-clipboard"></i> (클릭하여 복사)
+              </a>
+            </div>
+            <div class="col-md-6">
+              <a href="https://www.youtube.com/@rhahanul" target="_blank" class="btn btn-outline-danger btn-lg mb-3 w-100">
+                <i class="bi bi-youtube"></i> 유튜브 곰하늘
+              </a>
+            </div>
+          </div>
+          <hr class="my-4">
+          <p class="lead">
+            이 <span class="fw-bold text-primary">정산기</span>가 여러분의 즐거운 메랜 생활에<br>조금이나마 도움이 되기를 바랍니다.<br>
+            <span class="text-muted small">(Copyright &copy; 2025. All rights reserved.)</span>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 아이템 가격 설정 모달 -->
+  <div class="modal fade" id="itemPriceModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">아이템 가격 설정</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="item_mana_price" class="form-label">MP 포션 가격</label>
+            <input type="number" class="form-control" id="item_mana_price" value="1000" min="0">
+          </div>
+          <div class="mb-3">
+            <label for="item_hp_price" class="form-label">HP 포션 가격</label>
+            <input type="number" class="form-control" id="item_hp_price" value="1000" min="0">
+          </div>
+          <div class="mb-3">
+            <label for="item_summon_price" class="form-label">소환의 돌 가격</label>
+            <input type="number" class="form-control" id="item_summon_price" value="5000" min="0">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+          <button type="button" class="btn btn-primary" id="saveItemPrices">저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. 이스터에그 모달 -->
+  <div class="modal fade" id="easterEggModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">하늘찐 (김하늘) 사진</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body text-center">
+          <p class="lead mb-4">대표 프로필 사진과 다양한 사진을 클릭해서 크게 볼 수 있습니다.</p>
+          <div class="easter-egg-gallery-scroll mb-3" style="overflow-x:auto; white-space:nowrap; padding-bottom:8px;">
+            <div id="easterEggGallery" style="display:inline-flex; gap:20px;"></div>
+          </div>
+          <hr>
+          <p class="small text-muted mb-0">
+            "사진을 클릭하면 더 크게 볼 수 있습니다."
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. 이미지 확대 모달 -->
+  <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="imageModalLabel">이미지 확대 보기</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center">
+          <img id="modalImage" src="" alt="확대된 이미지" class="img-fluid">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================================= -->
+  <!-- 스크립트 파일들 -->
+  <!-- ========================================================================================= -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/main.js"></script>
+  <!-- 사진첩(이스터에그) 갤러리 및 확대 모달 관련 스타일/스크립트 최신화 -->
+  <style>
+    .pulse-anim {
+      animation: profilePulse 1.2s infinite alternate;
+    }
+    @keyframes profilePulse {
+      0% { box-shadow:0 4px 24px #ffd60077,0 0 0 6px #fff; }
+      100% { box-shadow:0 8px 32px #ffd600cc,0 0 0 10px #fff; }
+    }
+    .main-profile-thumb:hover {
+      transform: scale(1.13) !important;
+      z-index:2;
+    }
+    .profile-click-label {
+      opacity: 0.92;
+      letter-spacing:0.01em;
+      animation: labelFade 2.5s infinite alternate;
+      pointer-events: none;
+    }
+    @keyframes labelFade {
+      0% { opacity: 0.92; }
+      100% { opacity: 0.65; }
+    }
+    #easterEggGallery {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 28px 32px;
+      padding-bottom: 8px;
+      min-height: 200px;
+    }
+    #easterEggGallery > div {
+      margin-bottom: 8px;
+    }
+    #profileImage.profile-aggro {
+      animation: profilePulse 1.2s infinite alternate, profileShake 2.5s infinite linear;
+      border: 4px solid #ffd600;
+      box-shadow:0 4px 24px #ffd60077,0 0 0 6px #fff;
+      transition:transform 0.2s;
+      position:relative;
+    }
+    #profileImage.profile-aggro:hover {
+      transform: scale(1.13) !important;
+      z-index:2;
+    }
+    .profile-modal-label {
+      position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.55); color:#fff; font-weight:700; font-size:1.1rem; padding:6px 16px; border-radius:20px; pointer-events:none; box-shadow:0 2px 8px #0005; opacity:0.92; letter-spacing:0.01em; animation: labelFade 2.5s infinite alternate;
+    }
+  </style>
+  <script>
+    // 사진첩 이미지 배열
+    const easterEggImages = [
+      'images/1.PNG',
+      'images/2.JPG',
+      'images/3.JPG',
+      'images/4.JPG',
+      'images/5.jpg',
+      'images/6.JPG',
+      'images/7.JPG',
+      'images/8.jpg',
+      'images/9.jpg',
+      'images/10.jpg',
+      'images/11.JPG',
+      'images/12.jpg',
+      'images/13.jpg'
+    ];
+
+    // window 객체에 직접 함수를 할당하여 전역으로 만듭니다.
+    window.openImageModal = function(src) {
+      console.log("openImageModal called with src:", src);
+      var modalEl = document.getElementById('imageModal');
+      var modalImg = document.getElementById('modalImage');
+      if (!modalEl || !modalImg) {
+        console.error("imageModal or modalImage element not found!");
+        return;
+      }
+      modalImg.src = src;
+      var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.show();
+    };
+
+    // 사진첩 갤러리 렌더링 함수
+    function renderEasterEggGallery() {
+      const gallery = document.getElementById('easterEggGallery');
+      if (!gallery) {
+        console.error("easterEggGallery element not found!");
+        return;
+      }
+      
+      let html = '';
+      easterEggImages.forEach((src, idx) => {
+        const imgElement = `
+          <img 
+            src='${src}' 
+            alt='${idx === 0 ? '대표 사진' : '사진'}' 
+            class='img-fluid rounded ${idx === 0 ? 'main-profile-thumb pulse-anim' : ''}' 
+            style='width:180px; height:180px; object-fit:cover; cursor:pointer; transition:transform 0.2s; position:relative;
+              ${idx === 0 ? 'border:3px solid #ffd600; box-shadow:0 4px 24px #ffd60077,0 0 0 6px #fff;' : 'border:2.5px solid #0d6efd; box-shadow:0 4px 16px #0d6efd22;'}
+            '
+            data-img-src='${src}' 
+          >
+        `;
+
+        if (idx === 0) {
+          html += `<div style='display:inline-block; position:relative;'>
+            ${imgElement}
+            <span class='profile-click-label' style='position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.55); color:#fff; font-weight:700; font-size:1.1rem; padding:6px 16px; border-radius:20px; pointer-events:none; box-shadow:0 2px 8px #0005;'>클릭해서 크게 보기</span>
+          </div>`;
+        } else {
+          html += `<div style='display:inline-block;'>${imgElement}</div>`;
+        }
+      });
+      gallery.innerHTML = html;
+
+      // 렌더링된 이미지들에 대해 이벤트 리스너를 추가합니다.
+      gallery.querySelectorAll('img').forEach(img => {
+        img.addEventListener('click', function() {
+          const imgSrc = this.getAttribute('data-img-src');
+          if (imgSrc) {
+            window.openImageModal(imgSrc);
+          }
+        });
+      });
+    }
+
+    // DOM이 완전히 로드된 후 갤러리를 렌더링하고 필요한 이벤트 리스너를 설정합니다.
+    document.addEventListener('DOMContentLoaded', function() {
+      // 사진첩 갤러리 렌더링
+      renderEasterEggGallery();
+
+      // 푸터 제작자 링크 클릭 시 모달 오픈 및 기본 동작 방지
+      const creditsLink = document.getElementById('creditsLink');
+      if (creditsLink) {
+        creditsLink.addEventListener('click', function(e) {
+          e.preventDefault(); // 페이지 최상단 이동 방지
+          const creditsModal = new bootstrap.Modal(document.getElementById('creditsModal'));
+          creditsModal.show();
+        });
+      }
+      
+      // 프로필 이미지를 클릭했을 때 사진첩 모달을 열도록 하는 로직
+      const profileImage = document.getElementById('profileImage');
+      if (profileImage) {
+        profileImage.addEventListener('click', function() {
+          this.style.transform = 'scale(0.95)';
+          setTimeout(() => {
+            this.style.transform = 'scale(1)';
+            const easterEggModal = new bootstrap.Modal(document.getElementById('easterEggModal'));
+            easterEggModal.show();
+          }, 150);
+        });
+        profileImage.addEventListener('mouseenter', function() {
+          this.style.transform = 'scale(1.05)';
+        });
+        profileImage.addEventListener('mouseleave', function() {
+          this.style.transform = 'scale(1)';
+        });
+      }
+    });
+
+    // PWA 서비스 워커 등록
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(registration => {
+            console.log('ServiceWorker registration successful with scope:', registration.scope);
+          })
+          .catch(error => {
+            console.log('ServiceWorker registration failed:', error);
+          });
+      });
+    }
+  </script>
+</body>
+</html>
